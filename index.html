@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { 
+            margin: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            height: 100vh; background: transparent; font-family: 'Segoe UI', sans-serif; color: white;
+        }
+        .top-row { display: flex; gap: 15px; margin-bottom: 20px; }
+        .widget {
+            display: flex; flex-direction: column; align-items: center;
+            background: rgba(15, 15, 15, 0.95); border-radius: 20px; padding: 15px; width: 180px; text-align: center;
+        }
+        .master-theme {
+            width: 260px; border: 5px solid #a020f0; 
+            background: linear-gradient(180deg, #0f0f0f 0%, #280a3c 100%);
+            box-shadow: 0 0 25px rgba(160, 32, 240, 0.6);
+        }
+        .gift-theme { border: 4px solid #fe2c55; }
+        .like-theme { border: 4px solid #00f2ea; }
+        .chat-theme { border: 4px solid #ffcc00; }
+
+        .title { font-size: 11px; font-weight: 800; margin-bottom: 10px; text-transform: uppercase; }
+        .gift-theme .title { color: #fe2c55; }
+        .like-theme .title { color: #00f2ea; }
+        .chat-theme .title { color: #ffcc00; }
+        .master-theme .title { color: #a020f0; font-size: 14px; }
+
+        .avatar { width: 100px; height: 100px; border-radius: 50%; border: 3px solid white; object-fit: cover; display: none; }
+        .master-theme .avatar { width: 130px; height: 130px; }
+        .username { margin-top: 10px; font-weight: bold; font-size: 16px; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .stat-value { font-size: 13px; margin-top: 4px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="top-row">
+        <div id="gift-widget" class="widget gift-theme">
+            <div class="title">EN ÇOK DESTEKLEYEN</div>
+            <img id="gift-avatar" class="avatar">
+            <div id="gift-name" class="username">Bekleniyor...</div>
+            <div id="gift-value" class="stat-value" style="color: #fe2c55;"></div>
+        </div>
+        <div id="like-widget" class="widget like-theme">
+            <div class="title">EN ÇOK BEĞENEN</div>
+            <img id="like-avatar" class="avatar">
+            <div id="like-name" class="username">Bekleniyor...</div>
+            <div id="like-value" class="stat-value" style="color: #00f2ea;"></div>
+        </div>
+        <div id="chat-widget" class="widget chat-theme">
+            <div class="title">EN ÇOK YORUM ATAN</div>
+            <img id="chat-avatar" class="avatar">
+            <div id="chat-name" class="username">Bekleniyor...</div>
+            <div id="chat-value" class="stat-value" style="color: #ffcc00;"></div>
+        </div>
+    </div>
+
+    <div id="master-widget" class="widget master-theme">
+        <div class="title">✨ ETKİLEŞİM KRALI ✨</div>
+        <img id="master-avatar" class="avatar">
+        <div id="master-name" class="username">Bekleniyor...</div>
+        <div id="master-value" class="stat-value" style="color: #a020f0;"></div>
+    </div>
+
+   <script>
+        // Veri Depoları
+        let stats = {}; 
+        let leaders = { gift: {n: "", v: 0}, like: {n: "", v: 0}, chat: {n: "", v: 0}, master: {n: "", v: 0} };
+
+        const socket = new WebSocket('ws://localhost:21213/');
+
+        socket.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            const d = msg.data;
+            if (!d || !d.uniqueId) return;
+
+            const uid = d.uniqueId;
+            // Kullanıcıyı ilk kez görüyorsak stats objesine ekle
+            if (!stats[uid]) {
+                stats[uid] = { g: 0, l: 0, c: 0, p: d.profilePictureUrl };
+            }
+
+            // 1. HEDİYE
+            if (msg.event === "gift") {
+                const val = (d.diamondCount || 0) * (d.repeatCount || 1);
+                stats[uid].g += val;
+                if (stats[uid].g > leaders.gift.v) {
+                    leaders.gift = {n: uid, v: stats[uid].g};
+                    updateUI('gift', uid, stats[uid].g + " Elmas", d.profilePictureUrl);
+                }
+            }
+
+            // 2. BEĞENİ (Düzeltildi: totalLikeCount yerine likeCount kullanıp biz topluyoruz)
+            if (msg.event === "like") {
+                // d.likeCount o anki tıklama ile gelen beğeni sayısıdır (Genelde 1-15 arası)
+                const instantLikes = d.likeCount || 1;
+                stats[uid].l += instantLikes; // Kullanıcının üzerine ekle
+
+                if (stats[uid].l > leaders.like.v) {
+                    leaders.like = {n: uid, v: stats[uid].l};
+                    updateUI('like', uid, stats[uid].l + " Beğeni", d.profilePictureUrl);
+                }
+            }
+
+            // 3. YORUM
+            if (msg.event === "chat") {
+                stats[uid].c += 1;
+                if (stats[uid].c > leaders.chat.v) {
+                    leaders.chat = {n: uid, v: stats[uid].c};
+                    updateUI('chat', uid, stats[uid].c + " Yorum", d.profilePictureUrl);
+                }
+            }
+
+            // 4. ETKİLEŞİM KRALI (Dengeli Puanlama)
+            // Beğeniler artık 70 bin değil, gerçek kişi başı sayılar olduğu için çarpanları güncelledim
+            const totalScore = (stats[uid].g * 50) + (stats[uid].c * 10) + stats[uid].l;
+            
+            if (totalScore > leaders.master.v) {
+                leaders.master = {n: uid, v: totalScore};
+                updateUI('master', uid, "Skor: " + totalScore, d.profilePictureUrl);
+            }
+        };
+
+        function updateUI(type, name, val, pic) {
+            document.getElementById(type + '-name').innerText = name;
+            document.getElementById(type + '-value').innerText = val;
+            const img = document.getElementById(type + '-avatar');
+            if (pic) { img.src = pic; img.style.display = 'block'; }
+        }
+    </script>
+</body>
+</html>
