@@ -1,157 +1,139 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        body { 
-            margin: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; 
-            height: 100vh; background: transparent; font-family: 'Segoe UI', sans-serif; color: white;
-        }
-
-        .top-row { display: flex; gap: 15px; margin-bottom: 20px; }
+        body { overflow: hidden; background: transparent; margin: 0; height: 100vh; }
         
-        .widget {
-            display: flex; flex-direction: column; align-items: center;
-            background: rgba(15, 15, 15, 0.95); border-radius: 20px; padding: 15px; width: 180px; text-align: center;
-            transition: all 0.5s ease;
+        .cat-instance {
+            position: absolute;
+            top: 75%; 
+            transform: translateY(-50%);
+            text-align: center;
+            animation: walk-limited 12s linear infinite;
         }
 
-        /* 2. MADDE: ALTIN PARLAMA ANİMASYONU */
-        @keyframes gold-glow {
-            0% { box-shadow: 0 0 15px #ffd700; border-color: #ffd700; }
-            50% { box-shadow: 0 0 35px #ff8c00; border-color: #ff8c00; }
-            100% { box-shadow: 0 0 15px #ffd700; border-color: #ffd700; }
+        .cat-image { 
+            width: 140px; 
+            display: block;
+            transition: width 0.3s ease;
         }
 
-        .master-theme {
-            width: 260px; 
-            border: 5px solid #ffd700; 
-            background: linear-gradient(180deg, #0f0f0f 0%, #3a2a00 100%);
-            animation: gold-glow 2s infinite ease-in-out; /* Sürekli Altın Parlama */
+        .sender-name { 
+            font-family: 'Arial', sans-serif; 
+            color: #ff0050; 
+            font-size: 18px; 
+            font-weight: bold; 
+            text-shadow: 2px 2px #fff;
+            margin-bottom: 5px;
+            /* Yazının ters dönmesini engelleyen animasyon */
+            animation: flip-text 12s linear infinite;
         }
 
-        .gift-theme { border: 4px solid #fe2c55; }
-        .like-theme { border: 4px solid #00f2ea; }
-        .chat-theme { border: 4px solid #ffcc00; }
+        .fade-out {
+            animation: fadeout 1.5s forwards;
+        }
 
-        .title { font-size: 11px; font-weight: 800; margin-bottom: 10px; text-transform: uppercase; }
-        .gift-theme .title { color: #fe2c55; }
-        .like-theme .title { color: #00f2ea; }
-        .chat-theme .title { color: #ffcc00; }
-        .master-theme .title { color: #ffd700; font-size: 14px; letter-spacing: 2px; }
+        @keyframes fadeout {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
 
-        .avatar { width: 100px; height: 100px; border-radius: 50%; border: 3px solid white; object-fit: cover; display: none; }
-        .master-theme .avatar { width: 135px; height: 135px; border: 4px solid #ffd700; }
-        
-        .username { margin-top: 10px; font-weight: bold; font-size: 16px; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .master-theme .username { font-size: 24px; color: #ffd700; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
-        
-        .stat-value { font-size: 13px; margin-top: 4px; font-weight: bold; }
+        /* Kedi için yürüyüş ve aynalama animasyonu */
+        @keyframes walk-limited {
+            0% { left: 5%; transform: translateY(-50%) scaleX(-1); }
+            45% { transform: translateY(-50%) scaleX(-1); }
+            50% { left: 60%; transform: translateY(-50%) scaleX(1); }
+            95% { transform: translateY(-50%) scaleX(1); }
+            100% { left: 5%; transform: translateY(-50%) scaleX(1); }
+        }
+
+        /* Yazının kediyle birlikte ters dönmesini engelleyen ters-aynalama */
+        @keyframes flip-text {
+            0% { transform: scaleX(-1); }
+            45% { transform: scaleX(-1); }
+            50% { transform: scaleX(1); } /* Kedi ters döndüğünde yazı da ters döner, -1 * -1 = +1 (Düz) olur */
+            95% { transform: scaleX(1); }
+            100% { transform: scaleX(1); }
+        }
     </style>
 </head>
 <body>
-
-    <div class="top-row">
-        <div id="gift-widget" class="widget gift-theme">
-            <div class="title">EN ÇOK DESTEKLEYEN</div>
-            <img id="gift-avatar" class="avatar">
-            <div id="gift-name" class="username">Bekleniyor...</div>
-            <div id="gift-value" class="stat-value" style="color: #fe2c55;"></div>
-        </div>
-        <div id="like-widget" class="widget like-theme">
-            <div class="title">EN ÇOK BEĞENEN</div>
-            <img id="like-avatar" class="avatar">
-            <div id="like-name" class="username">Bekleniyor...</div>
-            <div id="like-value" class="stat-value" style="color: #00f2ea;"></div>
-        </div>
-        <div id="chat-widget" class="widget chat-theme">
-            <div class="title">EN ÇOK YORUM ATAN</div>
-            <img id="chat-avatar" class="avatar">
-            <div id="chat-name" class="username">Bekleniyor...</div>
-            <div id="chat-value" class="stat-value" style="color: #ffcc00;"></div>
-        </div>
-    </div>
-
-    <div id="master-widget" class="widget master-theme">
-        <div class="title">🏆 ETKİLEŞİM KRALI 🏆</div>
-        <img id="master-avatar" class="avatar">
-        <div id="master-name" class="username">Bekleniyor...</div>
-        <div id="master-value" class="stat-value" style="color: #ffd700;"></div>
-    </div>
+    <div id="cat-field"></div>
 
     <script>
-        let stats = {}; 
-        let leaders = { gift: {n: "", v: 0}, like: {n: "", v: 0}, chat: {n: "", v: 0}, master: {n: "", v: 0} };
-
+        // TikFinity'nin yerel WebSocket adresine bağlanıyoruz
         const socket = new WebSocket('ws://localhost:21213/');
+        const activeCats = {};
 
-        // 3. MADDE: KONFETİ PATLATMA FONKSİYONU
-        function celebrate() {
-            confetti({
-                particleCount: 150,
-                spread: 70,
-                origin: { y: 0.6 },
-                colors: ['#ffd700', '#ffffff', '#ff8c00']
-            });
-        }
+        socket.onopen = () => {
+            console.log("TikFinity bağlantısı başarılı!");
+        };
 
         socket.onmessage = (event) => {
             const msg = JSON.parse(event.data);
-            const d = msg.data;
-            if (!d || !d.uniqueId) return;
-
-            const uid = d.uniqueId;
-            if (!stats[uid]) stats[uid] = { g: 0, l: 0, c: 0, p: d.profilePictureUrl };
-
-            if (msg.event === "gift") {
-                const val = (d.diamondCount || 0) * (d.repeatCount || 1);
-                stats[uid].g += val;
-                if (stats[uid].g > leaders.gift.v) {
-                    leaders.gift = {n: uid, v: stats[uid].g};
-                    updateUI('gift', uid, stats[uid].g + " Elmas", d.profilePictureUrl);
-                }
-            }
-
-            if (msg.event === "like") {
-                const instantLikes = d.likeCount || 1;
-                stats[uid].l += instantLikes;
-                if (stats[uid].l > leaders.like.v) {
-                    leaders.like = {n: uid, v: stats[uid].l};
-                    updateUI('like', uid, stats[uid].l + " Beğeni", d.profilePictureUrl);
-                }
-            }
-
-            if (msg.event === "chat") {
-                stats[uid].c += 1;
-                if (stats[uid].c > leaders.chat.v) {
-                    leaders.chat = {n: uid, v: stats[uid].c};
-                    updateUI('chat', uid, stats[uid].c + " Yorum", d.profilePictureUrl);
-                }
-            }
-
-            // Master Skor Hesaplama
-            const totalScore = (stats[uid].g * 50) + (stats[uid].c * 10) + stats[uid].l;
             
-            // Eğer yeni birisi lider olursa konfeti patlat
-            if (totalScore > leaders.master.v && uid !== leaders.master.n) {
-                leaders.master = {n: uid, v: totalScore};
-                updateUI('master', uid, "Skor: " + totalScore, d.profilePictureUrl);
-                celebrate(); // KONFETİ!
-                console.log("Yeni Kral: " + uid);
-            } else if (totalScore > leaders.master.v) {
-                // Sadece skor güncelleniyorsa konfeti patlatma, sadece sayıyı artır
-                leaders.master.v = totalScore;
-                document.getElementById('master-value').innerText = "Skor: " + totalScore;
+            // TikFinity'den gelen veri 'gift' ise kediyi oluştur/büyüt
+            if (msg.event === 'gift') {
+                // 'uniqueId' kullanıcı adını temsil eder
+                createOrGrowCat(msg.data.uniqueId);
             }
         };
 
-        function updateUI(type, name, val, pic) {
-            document.getElementById(type + '-name').innerText = name;
-            document.getElementById(type + '-value').innerText = val;
-            const img = document.getElementById(type + '-avatar');
-            if (pic) { img.src = pic; img.style.display = 'block'; }
+        socket.onerror = (error) => {
+            console.error("Bağlantı hatası:", error);
+        };
+
+        function createOrGrowCat(userName) {
+            const field = document.getElementById('cat-field');
+
+            if (activeCats[userName]) {
+                const catObj = activeCats[userName];
+                catObj.scale += 0.2; 
+                if (catObj.scale > 3) catObj.scale = 3;
+
+                const img = catObj.element.querySelector('.cat-image');
+                const nameDiv = catObj.element.querySelector('.sender-name');
+                
+                img.style.width = (140 * catObj.scale) + "px";
+                nameDiv.style.fontSize = (18 * catObj.scale) + "px";
+
+                clearTimeout(catObj.timer);
+                catObj.timer = setTimeout(() => removeCat(userName), 30000);
+                
+            } else {
+                const catDiv = document.createElement('div');
+                catDiv.className = 'cat-instance';
+                
+                catDiv.innerHTML = `
+                    <div class="sender-name">${userName}</div>
+                    <img class="cat-image" src="kedi.gif" alt="kedi">
+                `;
+
+                field.appendChild(catDiv);
+
+                activeCats[userName] = {
+                    element: catDiv,
+                    scale: 1,
+                    timer: setTimeout(() => removeCat(userName), 30000)
+                };
+            }
         }
+
+        function removeCat(userName) {
+            const catObj = activeCats[userName];
+            if (catObj) {
+                catObj.element.classList.add('fade-out');
+                setTimeout(() => {
+                    catObj.element.remove();
+                    delete activeCats[userName];
+                }, 1500);
+            }
+        }
+
+        // Test için tıkla
+        document.body.onclick = () => {
+            createOrGrowCat("ZEYDLENDIN_TEST");
+        };
     </script>
 </body>
 </html>
